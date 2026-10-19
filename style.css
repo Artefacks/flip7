@@ -385,14 +385,11 @@ input {
 .note.goal { background: #f8e7c0; color: #3e3112; }
 
 .dock {
-  position: sticky;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
   margin-top: 0.35rem;
-  padding: 1rem 0 calc(0.45rem + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgb(12 34 27 / 0), var(--felt) 22%);
+  padding: 0.4rem 0 calc(0.45rem + env(safe-area-inset-bottom));
 }
 
 .confirm {
