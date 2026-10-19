@@ -1,0 +1,19 @@
+{
+  "name": "Flip 7",
+  "short_name": "Flip 7",
+  "description": "Feuille de score pour une partie de Flip 7.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c221b",
+  "theme_color": "#0c221b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
