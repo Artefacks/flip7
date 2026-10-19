@@ -1,6 +1,6 @@
 //! Feuille de score Flip 7, pensée pour l'écran d'un téléphone.
 
-use flip7::game::{GameError, Standing};
+use flip7::game::GameError;
 use flip7::state::{digits_only, format_names, Phase, Saved, Session};
 use leptos::prelude::*;
 
@@ -340,9 +340,15 @@ fn PlayScreen(model: Model) -> impl IntoView {
                 {move || {
                     let (round, target) = model.session.with(|session| (session.rounds.len() + 1, session.target));
                     view! {
-                        <div>
-                            <h2>"Manche " {round}</h2>
-                            <p class="hint">"Objectif " {target} ". Saisis le score annoncé. Un éliminé marque 0."</p>
+                        <div class="round-head">
+                            <div>
+                                <p class="kicker">"Manche"</p>
+                                <h2>{round}</h2>
+                            </div>
+                            <div class="target-chip">
+                                <span>"Objectif"</span>
+                                <strong>{target}</strong>
+                            </div>
                         </div>
                     }
                 }}
@@ -350,7 +356,9 @@ fn PlayScreen(model: Model) -> impl IntoView {
                 <History model=model />
             </section>
             <section class="paper">
-                <h2>"Points de la manche"</h2>
+                <p class="kicker ink">"Cette manche"</p>
+                <h2>"Score annoncé"</h2>
+                <p class="hint">"Un éliminé marque 0."</p>
                 <div class="scores">
                     <For
                         each=move || model.session.with(|session| session.players.clone())
@@ -380,12 +388,14 @@ fn score_entry(model: Model, name: String) -> impl IntoView {
             <div class="score-head">
                 <span class="name">{name}</span>
                 <span class="entry-total">
-                    {move || {
-                        model.session.with(|session| {
-                            session.game().totals().get(index).copied().unwrap_or(0)
-                        })
-                    }}
-                    " pts"
+                    <span class="entry-num">
+                        {move || {
+                            model.session.with(|session| {
+                                session.game().totals().get(index).copied().unwrap_or(0)
+                            })
+                        }}
+                    </span>
+                    <span class="entry-unit">"pts"</span>
                 </span>
             </div>
             <div class="score-row">
@@ -405,15 +415,14 @@ fn score_entry(model: Model, name: String) -> impl IntoView {
                     type="button"
                     class=move || {
                         if model.draft.with(|draft| draft.get(index).is_some_and(|value| value == "0")) {
-                            "zero is-zero"
+                            "bust is-zero"
                         } else {
-                            "zero"
+                            "bust"
                         }
                     }
                     on:click=move |_| model.toggle_zero(index)
                 >
-                    <span class="zero-num">"0"</span>
-                    <span class="zero-label">"Éliminé"</span>
+                    "Éliminé"
                 </button>
             </div>
         </div>
@@ -445,7 +454,7 @@ fn PlayDock(model: Model) -> impl IntoView {
                     {undo_controls(model, confirming, round_count)}
                     {optional_button(!reached, move || {
                         view! {
-                            <button type="button" class="ghost" on:click=move |_| model.finish()>
+                            <button type="button" class="linkish" on:click=move |_| model.finish()>
                                 "Terminer la partie"
                             </button>
                         }
@@ -561,18 +570,56 @@ fn Board(model: Model) -> impl IntoView {
             <For
                 each=move || model.session.with(|session| session.game().standings())
                 key=|row| format!("{}-{}-{}-{:?}", row.name, row.rank, row.total, row.last)
-                let(Standing { rank, name, total, last, at_target })
-            >
-                <li class={if at_target { "row hot" } else { "row" }}>
-                    <span class="rank">{rank}</span>
-                    <span class="who">
-                        <span class="name">{name}</span>
-                        <span class="delta">{round_delta(last)}</span>
-                    </span>
-                    <span class="total">{total}</span>
-                </li>
-            </For>
+                children=move |row| {
+                    view! {
+                        <StandingRow
+                            model=model
+                            rank=row.rank
+                            name=row.name
+                            total=row.total
+                            last=row.last
+                            at_target=row.at_target
+                        />
+                    }
+                }
+            />
         </ol>
+    }
+}
+
+#[component]
+fn StandingRow(
+    model: Model,
+    rank: usize,
+    name: String,
+    total: i32,
+    last: Option<i32>,
+    at_target: bool,
+) -> impl IntoView {
+    let width = model.session.with_untracked(|session| {
+        let percent = if session.target <= 0 {
+            0.0
+        } else {
+            (total as f32 / session.target as f32 * 100.0).min(100.0)
+        };
+        format!("{percent:.0}%")
+    });
+    let delta = round_delta(last);
+    view! {
+        <li class={if at_target { "standing hot" } else { "standing" }}>
+            <span class="rank">{rank}</span>
+            <span class="who">
+                <span class="name">{name}</span>
+                <span class="delta">{delta}</span>
+                <span class="meter" aria-hidden="true">
+                    <span class="meter-fill" style:width=width></span>
+                </span>
+            </span>
+            <span class="total-block">
+                <span class="total">{total}</span>
+                <span class="entry-unit">"pts"</span>
+            </span>
+        </li>
     }
 }
 
