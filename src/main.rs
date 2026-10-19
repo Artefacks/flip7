@@ -341,7 +341,7 @@ fn PlayScreen(model: Model) -> impl IntoView {
                     let (round, target) = model.session.with(|session| (session.rounds.len() + 1, session.target));
                     view! {
                         <div class="round-head">
-                            <div>
+                            <div class="round-title">
                                 <p class="kicker">"Manche"</p>
                                 <h2>{round}</h2>
                             </div>
@@ -610,7 +610,14 @@ fn StandingRow(
             <span class="rank">{rank}</span>
             <span class="who">
                 <span class="name">{name}</span>
-                <span class="delta">{delta}</span>
+                {last.map(|_| {
+                    view! {
+                        <span class="delta">
+                            <span class="delta-label">"Cette manche"</span>
+                            <strong>{delta.clone()}</strong>
+                        </span>
+                    }
+                })}
                 <span class="meter" aria-hidden="true">
                     <span class="meter-fill" style:width=width></span>
                 </span>
@@ -625,7 +632,7 @@ fn StandingRow(
 
 fn round_delta(last: Option<i32>) -> String {
     match last {
-        Some(score) if score > 0 => format!("+{score}"),
+        Some(score) if score > 0 => format!("+ {score}"),
         Some(_) => "0".to_string(),
         None => String::new(),
     }
@@ -636,30 +643,53 @@ fn History(model: Model) -> impl IntoView {
     view! {
         <Show when=move || model.session.with(|session| !session.rounds.is_empty())>
             {move || {
-                let (players, rounds) = model.session.with(|session| (session.players.clone(), session.rounds.clone()));
-                let lines = rounds
-                    .iter()
-                    .enumerate()
-                    .rev()
-                    .map(|(index, scores)| {
-                        let parts = scores
-                            .iter()
-                            .enumerate()
-                            .map(|(seat, score)| {
-                                let name = players.get(seat).map(String::as_str).unwrap_or("?");
-                                format!("{name} {score}")
-                            })
-                            .collect::<Vec<_>>()
-                            .join(" · ");
-                        format!("Manche {} — {parts}", index + 1)
-                    })
-                    .collect::<Vec<_>>();
+                let past = model.session.with(|session| {
+                    session
+                        .rounds
+                        .iter()
+                        .enumerate()
+                        .rev()
+                        .map(|(index, scores)| {
+                            let seats = scores
+                                .iter()
+                                .enumerate()
+                                .map(|(seat, score)| {
+                                    (
+                                        session
+                                            .players
+                                            .get(seat)
+                                            .cloned()
+                                            .unwrap_or_else(|| "?".into()),
+                                        *score,
+                                    )
+                                })
+                                .collect::<Vec<_>>();
+                            (index + 1, seats)
+                        })
+                        .collect::<Vec<_>>()
+                });
                 view! {
                     <details>
                         <summary>"Manches précédentes"</summary>
-                        <ul class="history">
-                            {lines.into_iter().map(|line| view! { <li>{line}</li> }).collect::<Vec<_>>()}
-                        </ul>
+                        <div class="history">
+                            {past.into_iter().map(|(number, seats)| {
+                                view! {
+                                    <section class="past">
+                                        <p class="past-title">"Manche " {number}</p>
+                                        <ul>
+                                            {seats.into_iter().map(|(name, score)| {
+                                                view! {
+                                                    <li>
+                                                        <span>{name}</span>
+                                                        <span class="past-score">{score}</span>
+                                                    </li>
+                                                }
+                                            }).collect::<Vec<_>>()}
+                                        </ul>
+                                    </section>
+                                }
+                            }).collect::<Vec<_>>()}
+                        </div>
                     </details>
                 }
             }}
